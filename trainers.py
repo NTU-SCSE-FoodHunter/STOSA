@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
-from utils import recall_at_k, ndcg_k, get_metric, cal_mrr, get_user_performance_perpopularity, get_item_performance_perpopularity
+from utils import recall_at_k, ndcg_k, get_metric, cal_mrr
 from modules import wasserstein_distance, kl_distance, wasserstein_distance_matmul, d2s_gaussiannormal, d2s_1overx, kl_distance_matmul
 
 
@@ -573,6 +573,7 @@ class DistSAModelTrainer(Trainer):
                         # 0. batch_data will be sent into the device(GPU or cpu)
                         batch = tuple(t.to(self.device) for t in batch)
                         user_ids, input_ids, target_pos, target_neg, answers = batch
+                        print(user_ids.shape, input_ids.shape, target_pos.shape, target_neg.shape, answers.shape)
                         recommend_mean_output, recommend_cov_output, _, _ = self.model.finetune(input_ids, user_ids)
 
                         recommend_mean_output = recommend_mean_output[:, -1, :]
@@ -584,7 +585,9 @@ class DistSAModelTrainer(Trainer):
                             rating_pred = self.dist_predict_full(recommend_mean_output, recommend_cov_output)
 
                         rating_pred = rating_pred.cpu().data.numpy().copy()
+                        print("rating_pred", rating_pred.shape)
                         batch_user_index = user_ids.cpu().numpy()
+                        print("user_ids", batch_user_index.shape)
                         rating_pred[self.args.train_matrix[batch_user_index].toarray() > 0] = 1e+24
                         # reference: https://stackoverflow.com/a/23734295, https://stackoverflow.com/a/20104162
                         ind = np.argpartition(rating_pred, 40)[:, :40]
